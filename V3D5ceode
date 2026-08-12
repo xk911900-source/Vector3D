@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VECTOR3D · Line &amp; Plane Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --bp-bg-deep:#081a2e;
+    --bp-bg:#0d2440;
+    --bp-panel:#0f2a4a;
+    --bp-panel-2:#11304f;
+    --bp-line:rgba(200,222,255,0.14);
+    --bp-line-strong:rgba(200,222,255,0.28);
+    --ink:#eaf2ff;
+    --ink-dim:#9fbede;
+    --ink-faint:#5c85ab;
+    --accent:#ff7a33;
+    --accent-dim:#ffb98a;
+    --ok:#7be0a8;
+    --warn:#ffcf5c;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --sans:'Inter', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(0deg, var(--bp-line) 0px, var(--bp-line) 1px, transparent 1px, transparent 32px),
+      repeating-linear-gradient(90deg, var(--bp-line) 0px, var(--bp-line) 1px, transparent 1px, transparent 32px),
+      var(--bp-bg-deep);
+    color:var(--ink);
+    font-family:var(--sans);
+    display:flex;
+    flex-direction:column;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 22px;
+    border-bottom:1px solid var(--bp-line-strong);
+    background:linear-gradient(180deg, rgba(15,42,74,0.9), rgba(13,36,64,0.6));
+    backdrop-filter:blur(2px);
+    flex-shrink:0;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .brand{display:flex; align-items:baseline; gap:12px;}
+  .brand .mark{
+    font-family:var(--mono); font-weight:700; letter-spacing:0.12em;
+    color:var(--accent); font-size:13px; border:1px solid var(--accent);
+    padding:3px 7px; border-radius:3px;
+  }
+  .brand h1{
+    font-size:17px; margin:0; font-weight:600; letter-spacing:0.02em;
+  }
+  .brand .sub{color:var(--ink-faint); font-family:var(--mono); font-size:11px;}
+  .legend{display:flex; gap:16px; font-family:var(--mono); font-size:11px; color:var(--ink-dim); flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:10px; height:10px; border-radius:50%; display:inline-block;}
+
+  .app{
+    flex:1;
+    display:grid;
+    grid-template-columns:380px 1fr;
+    min-height:0;
+  }
+  @media (max-width: 900px){
+    .app{grid-template-columns:1fr; grid-template-rows:auto 52vh;}
+  }
+
+  aside{
+    border-right:1px solid var(--bp-line-strong);
+    overflow-y:auto;
+    padding:16px 16px 40px;
+    background:linear-gradient(180deg, rgba(11,32,58,0.55), rgba(8,26,46,0.35));
+  }
+  @media (max-width: 900px){
+    aside{border-right:none; border-bottom:1px solid var(--bp-line-strong); max-height:48vh;}
+  }
+
+  .panel{
+    background:var(--bp-panel);
+    border:1px solid var(--bp-line-strong);
+    border-radius:6px;
+    padding:14px;
+    margin-bottom:14px;
+  }
+  .panel h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.14em;
+    margin:0 0 10px; color:var(--accent-dim); font-weight:600;
+    display:flex; align-items:center; gap:8px;
+  }
+  .panel h2::before{
+    content:''; width:14px; height:1px; background:var(--accent);
+  }
+  label{display:block; font-size:11px; color:var(--ink-dim); margin:10px 0 4px; font-family:var(--mono);}
+  select, input[type=text], input[type=number], textarea{
+    width:100%; background:var(--bp-bg-deep); border:1px solid var(--bp-line-strong);
+    color:var(--ink); border-radius:4px; padding:8px 9px; font-family:var(--mono);
+    font-size:12.5px; outline:none;
+  }
+  select:focus, input:focus, textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical; min-height:44px;}
+  .help{font-size:11px; color:var(--ink-faint); margin-top:5px; line-height:1.5;}
+  .help code{color:var(--ink-dim);}
+  .row{display:flex; gap:8px;}
+  .row > *{flex:1;}
+  button{
+    font-family:var(--sans); font-weight:600; font-size:12.5px;
+    background:var(--accent); color:#1a0f06; border:none; border-radius:4px;
+    padding:9px 12px; cursor:pointer; letter-spacing:0.01em;
+  }
+  button:hover{filter:brightness(1.08);}
+  button.secondary{
+    background:transparent; color:var(--ink-dim); border:1px solid var(--bp-line-strong);
+  }
+  button.secondary:hover{color:var(--ink); border-color:var(--ink-dim);}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+  .btn-row{display:flex; gap:8px; margin-top:10px;}
+  .error{
+    margin-top:8px; font-size:11.5px; color:#ffb1a3; font-family:var(--mono);
+    background:rgba(255,90,60,0.1); border:1px solid rgba(255,90,60,0.35);
+    border-radius:4px; padding:7px 9px; display:none;
+  }
+  .obj-row{
+    display:flex; align-items:flex-start; gap:8px; padding:8px 0;
+    border-top:1px solid var(--bp-line);
+  }
+  .obj-row:first-child{border-top:none;}
+  .swatch{width:11px; height:11px; border-radius:50%; margin-top:3px; flex-shrink:0;}
+  .obj-info{flex:1; min-width:0;}
+  .obj-info .lbl{font-family:var(--mono); font-size:12px; font-weight:700; color:var(--ink);}
+  .obj-info .eq{font-family:var(--mono); font-size:10.5px; color:var(--ink-dim); word-break:break-word; margin-top:2px;}
+  .obj-actions{display:flex; flex-direction:column; gap:4px; flex-shrink:0;}
+  .icon-btn{
+    background:transparent; border:1px solid var(--bp-line-strong); color:var(--ink-faint);
+    font-size:10px; padding:3px 6px; border-radius:3px; font-family:var(--mono);
+  }
+  .icon-btn:hover{color:var(--ink); border-color:var(--ink-dim);}
+  .empty{color:var(--ink-faint); font-size:11.5px; font-family:var(--mono); padding:6px 0;}
+
+  .slider-row{display:flex; align-items:center; gap:10px;}
+  input[type=range]{flex:1; accent-color:var(--accent);}
+  .angle-readout{font-family:var(--mono); font-size:12px; color:var(--accent-dim); width:52px; text-align:right;}
+
+  .interaction-item{
+    font-family:var(--mono); font-size:11px; line-height:1.6; padding:7px 0;
+    border-top:1px solid var(--bp-line); color:var(--ink-dim);
+  }
+  .interaction-item:first-child{border-top:none;}
+  .interaction-item.point{color:var(--warn);}
+  .interaction-item.line{color:var(--ok);}
+
+  main{position:relative; min-height:0;}
+  #viewport{width:100%; height:100%; display:block; cursor:grab;}
+  #viewport:active{cursor:grabbing;}
+  .hint{
+    position:absolute; bottom:12px; left:12px; font-family:var(--mono); font-size:10.5px;
+    color:var(--ink-faint); background:rgba(8,26,46,0.6); padding:6px 9px; border-radius:4px;
+    border:1px solid var(--bp-line);
+    pointer-events:none;
+  }
+  .badge{
+    position:absolute; top:12px; right:12px; font-family:var(--mono); font-size:10.5px;
+    color:var(--ink-dim); background:rgba(8,26,46,0.6); padding:6px 9px; border-radius:4px;
+    border:1px solid var(--bp-line);
+  }
+  .hidden{display:none !important;}
+  ::-webkit-scrollbar{width:9px;}
+  ::-webkit-scrollbar-thumb{background:var(--bp-panel-2); border-radius:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="mark">V3D</span>
+    <div>
+      <h1>Line &amp; Plane Studio</h1>
+      <div class="sub">spatial vectors · intersections · rotation · reflection</div>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--accent)"></i>intersection</span>
+    <span><i style="background:#4fd1e8"></i>line</span>
+    <span><i style="background:#c97aff"></i>plane</span>
+  </div>
+</header>
+
+<div class="app">
+  <aside id="sidebar">
+
+    <div class="panel">
+      <h2>Add an object</h2>
+      <label for="inputType">Equation type</label>
+      <select id="inputType"></select>
+      <label for="inputEq">Equation</label>
+      <textarea id="inputEq" placeholder=""></textarea>
+      <div class="help" id="inputHelp"></div>
+      <div class="btn-row">
+        <button id="addBtn">Add to scene</button>
+        <button class="secondary" id="exampleBtn" type="button">Insert example</button>
+      </div>
+      <div class="error" id="errorMsg"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Objects in scene</h2>
+      <div id="objList"><div class="empty">Nothing plotted yet — add a line or plane above.</div></div>
+      <div class="btn-row">
+        <button class="secondary" id="clearBtn" type="button">Clear all</button>
+        <button class="secondary" id="resetViewBtn" type="button">Reset view</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Rotate a line</h2>
+      <label for="rotLineSelect">Line to rotate</label>
+      <select id="rotLineSelect"></select>
+      <label for="rotAxisMode">Axis of rotation</label>
+      <select id="rotAxisMode">
+        <option value="x">X-axis (through origin)</option>
+        <option value="y">Y-axis (through origin)</option>
+        <option value="z">Z-axis (through origin)</option>
+        <option value="custom">Custom axis</option>
+      </select>
+      <div id="customAxisFields" class="hidden">
+        <label>Axis point (x,y,z)</label>
+        <input type="text" id="axisPoint" value="0,0,0">
+        <label>Axis direction (a,b,c)</label>
+        <input type="text" id="axisDir" value="0,0,1">
+      </div>
+      <label for="rotAngle">Angle (degrees)</label>
+      <div class="slider-row">
+        <input type="range" id="rotAngle" min="-180" max="180" value="45" step="1">
+        <span class="angle-readout" id="rotAngleReadout">45°</span>
+      </div>
+      <div class="btn-row">
+        <button id="rotateApplyBtn">Add rotated copy</button>
+      </div>
+      <div class="help">The ghost dashed line previews the rotation live. Confirm to add it as a new object.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Reflect a line across a plane</h2>
+      <label for="reflLineSelect">Line</label>
+      <select id="reflLineSelect"></select>
+      <label for="reflPlaneSelect">Plane</label>
+      <select id="reflPlaneSelect"></select>
+      <div class="btn-row">
+        <button id="reflectBtn">Reflect</button>
+      </div>
+      <div class="help">Produces the mirror image of the line across the plane, and marks the invariant point where the original line meets the plane (if any).</div>
+    </div>
+
+    <div class="panel">
+      <h2>Interactions</h2>
+      <div id="interactionsList"><div class="empty">Add at least two objects to see how they interact.</div></div>
+    </div>
+
+  </aside>
+
+  <main>
+    <canvas id="viewport"></canvas>
+    <div class="badge" id="camBadge">drag to orbit · scroll to zoom</div>
+    <div class="hint">grid spacing = 1 unit · axes: X / Y / Z</div>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================= VECTOR MATH ============================= */
+const EPS = 1e-6;
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];}
+function add(a,b){return [a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
+function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function scale(a,s){return [a[0]*s,a[1]*s,a[2]*s];}
+function norm(a){return Math.sqrt(dot(a,a));}
+function normalize(a){const n=norm(a); return n<1e-9?[0,0,0]:scale(a,1/n);}
+function fmt(n){
+  if(Math.abs(n) < 1e-9) n = 0;
+  const r = Math.round(n*1000)/1000;
+  return (Object.is(r,-0) ? 0 : r).toString();
+}
+
+/* ============================= PARSERS ============================= */
+function parseVectorGroups(str){
+  const re = /\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)/g;
+  const out = [];
+  let m;
+  while((m = re.exec(str)) !== null){
+    out.push([parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])]);
+  }
+  return out;
+}
+
+function parsePlaneCartesian(str){
+  const parts = str.split('=');
+  if(parts.length !== 2) throw new Error('Expected a single "=" separating the left- and right-hand sides.');
+  const lhs = parts[0].replace(/\s+/g,'');
+  const rhsStr = parts[1].replace(/\s+/g,'');
+  const rhs = parseFloat(rhsStr);
+  if(isNaN(rhs)) throw new Error('The right-hand side must be a plain number.');
+  const re = /([+-]?\d*\.?\d*)([xyz])/g;
+  let A=0,B=0,C=0,found=false;
+  let m;
+  while((m = re.exec(lhs)) !== null){
+    found = true;
+    let coeffStr = m[1];
+    let coeff;
+    if(coeffStr === '' || coeffStr === '+') coeff = 1;
+    else if(coeffStr === '-') coeff = -1;
+    else coeff = parseFloat(coeffStr);
+    if(m[2] === 'x') A += coeff;
+    if(m[2] === 'y') B += coeff;
+    if(m[2] === 'z') C += coeff;
+  }
+  if(!found) throw new Error('No x, y or z terms were found on the left-hand side.');
+  if(Math.abs(A) < EPS && Math.abs(B) < EPS && Math.abs(C) < EPS) throw new Error('Coefficients of x, y and z cannot all be zero.');
+  const normal = [A,B,C];
+  let point;
+  if(Math.abs(C) > EPS) point = [0,0,rhs/C];
+  else if(Math.abs(B) > EPS) point = [0,rhs/B,0];
+  else point = [rhs/A,0,0];
+  return {point, normal, d: rhs};
+}
+
+function parsePlaneScalar(str){
+  const parts = str.split('=');
+  if(parts.length !== 2) throw new Error('Expected a single "=" separating the left- and right-hand sides.');
+  const lhs = parts[0], rhs = parts[1];
+  const rhsNum = parseFloat(rhs.trim());
+  if(isNaN(rhsNum)) throw new Error('The right-hand side must be a plain number.');
+  const vecs = parseVectorGroups(lhs);
+  if(vecs.length === 0) throw new Error('Could not find a normal vector, e.g. (1,2,-3).');
+  let point, normal, d;
+  if(vecs.length === 1){
+    normal = vecs[0];
+    d = rhsNum;
+    const nn = dot(normal,normal);
+    point = nn > EPS ? scale(normal, d/nn) : [0,0,0];
+  } else {
+    point = vecs[0];
+    normal = vecs[1];
+    d = rhsNum + dot(normal, point);
+  }
+  if(norm(normal) < EPS) throw new Error('The normal vector cannot be the zero vector.');
+  return {point, normal, d};
+}
+
+function parsePlaneVector(str){
+  const vecs = parseVectorGroups(str);
+  if(vecs.length < 3) throw new Error('Expected three vectors: a point and two direction vectors, e.g. r=(1,0,0)+s(1,1,0)+t(0,1,1).');
+  const point = vecs[0], d1 = vecs[1], d2 = vecs[2];
+  const normal = cross(d1,d2);
+  if(norm(normal) < EPS) throw new Error('The two direction vectors are parallel — they do not define a plane.');
+  const d = dot(normal, point);
+  return {point, normal, d};
+}
+
+function parseLineVector(str){
+  const vecs = parseVectorGroups(str);
+  if(vecs.length < 2) throw new Error('Expected two vectors: a point and a direction, e.g. r=(1,2,3)+t(2,-1,4).');
+  const point = vecs[0], dir = vecs[1];
+  if(norm(dir) < EPS) throw new Error('The direction vector cannot be the zero vector.');
+  return {point, dir};
+}
+
+function parseLineCartesian(str){
+  const bareVarRe = /^[xyz]$/;
+  const numberRe = /^[+-]?\d*\.?\d+$/;
+  const divRe = /^\(?\s*([xyz])\s*([+-]\s*\d*\.?\d+)?\s*\)?\s*\/\s*([+-]?\d*\.?\d+)\s*$/;
+  const vals = {x:{x0:null,dir:null}, y:{x0:null,dir:null}, z:{x0:null,dir:null}};
+  function setVar(letter, x0, dir){ vals[letter] = {x0, dir}; }
+
+  const clauses = str.split(',');
+  for(const clause of clauses){
+    const parts = clause.split('=').map(p=>p.trim()).filter(p=>p.length>0);
+    let pendingVar = null;
+    for(const part of parts){
+      if(bareVarRe.test(part)){
+        pendingVar = part;
+        continue;
+      }
+      if(pendingVar && numberRe.test(part)){
+        setVar(pendingVar, parseFloat(part), 0);
+        pendingVar = null;
+        continue;
+      }
+      const m = part.match(divRe);
+      if(m){
+        const v = m[1];
+        const k = m[2] ? parseFloat(m[2].replace(/\s+/g,'')) : 0;
+        const d = parseFloat(m[3]);
+        setVar(v, -k, d);
+        pendingVar = null;
+        continue;
+      }
+      throw new Error('Could not parse term: "' + part + '". Use the symmetric form, e.g. (x-1)/2=(y+3)/-1=(z)/4');
+    }
+  }
+  for(const letter of ['x','y','z']){
+    if(vals[letter].x0 === null) throw new Error('Missing an equation for "' + letter + '".');
+  }
+  const point = [vals.x.x0, vals.y.x0, vals.z.x0];
+  const dir = [vals.x.dir, vals.y.dir, vals.z.dir];
+  if(norm(dir) < EPS) throw new Error('The direction vector cannot be the zero vector — check your denominators.');
+  return {point, dir};
+}
+
+/* ============================= FORMATTING ============================= */
+function formatLineCartesian(line){
+  const [x0,y0,z0] = line.point;
+  const [a,b,c] = line.dir;
+  const labels = ['x','y','z'];
+  const offs = [x0,y0,z0];
+  const dirs = [a,b,c];
+  const chainParts = [];
+  const constParts = [];
+  for(let i=0;i<3;i++){
+    if(Math.abs(dirs[i]) < EPS){
+      constParts.push(labels[i] + ' = ' + fmt(offs[i]));
+    } else {
+      const off = offs[i];
+      let numer;
+      if(Math.abs(off) < EPS) numer = labels[i];
+      else numer = labels[i] + (off > 0 ? ' - ' + fmt(off) : ' + ' + fmt(-off));
+      chainParts.push('(' + numer + ')/' + fmt(dirs[i]));
+    }
+  }
+  const out = [];
+  if(chainParts.length) out.push(chainParts.join(' = '));
+  if(constParts.length) out.push(constParts.join(', '));
+  return out.join(',  ');
+}
+function formatVec(v){ return '(' + fmt(v[0]) + ', ' + fmt(v[1]) + ', ' + fmt(v[2]) + ')'; }
+function formatLineVector(line){
+  return 'r = ' + formatVec(line.point) + ' + t' + formatVec(line.dir);
+}
+function formatPlaneCartesian(plane){
+  const [A,B,C] = plane.normal;
+  const labels = ['x','y','z'];
+  const coeffs = [A,B,C];
+  let terms = [];
+  for(let i=0;i<3;i++){
+    const c = coeffs[i];
+    if(Math.abs(c) < EPS) continue;
+    let piece;
+    if(Math.abs(c-1) < EPS) piece = labels[i];
+    else if(Math.abs(c+1) < EPS) piece = '-' + labels[i];
+    else piece = fmt(c) + labels[i];
+    terms.push(piece);
+  }
+  let str = terms[0] || '0';
+  for(let i=1;i<terms.length;i++){
+    str += (terms[i].startsWith('-') ? ' - ' + terms[i].slice(1) : ' + ' + terms[i]);
+  }
+  return str + ' = ' + fmt(plane.d);
+}
+function formatPlaneScalar(plane){
+  return 'r·' + formatVec(plane.normal) + ' = ' + fmt(plane.d);
+}
+
+/* ============================= INPUT TYPES ============================= */
+const INPUT_TYPES = [
+  {
+    value:'plane-cartesian', label:'Plane · Cartesian', kind:'plane', parser:parsePlaneCartesian,
+    placeholder:'3x + 4y + z = -2',
+    help:'General linear equation <code>Ax + By + Cz = D</code>. Omit a variable if its coefficient is zero.'
+  },
+  {
+    value:'plane-scalar', label:'Plane · Scalar (normal) form', kind:'plane', parser:parsePlaneScalar,
+    placeholder:'r·(1,2,-3) = 6',
+    help:'Normal-vector form <code>r·n = d</code>. You may also give a point: <code>(r-(1,0,0))·(2,1,-1)=0</code>.'
+  },
+  {
+    value:'plane-vector', label:'Plane · Vector form', kind:'plane', parser:parsePlaneVector,
+    placeholder:'r = (1,0,0) + s(1,1,0) + t(0,1,1)',
+    help:'Point plus two non-parallel direction vectors: <code>r = A + s·u + t·v</code>.'
+  },
+  {
+    value:'line-cartesian', label:'Line · Cartesian (symmetric)', kind:'line', parser:parseLineCartesian,
+    placeholder:'(x-1)/2 = (y+3)/-1 = (z)/4',
+    help:'Symmetric form. For a zero direction component write it separately, e.g. <code>x=2, (y-1)/3=(z+2)/-1</code>.'
+  },
+  {
+    value:'line-vector', label:'Line · Vector form', kind:'line', parser:parseLineVector,
+    placeholder:'r = (1,2,3) + t(2,-1,4)',
+    help:'Point plus a direction vector: <code>r = A + t·d</code>.'
+  },
+];
+
+/* ============================= STATE ============================= */
+const PALETTE = ['#4fd1e8','#c97aff','#ffd24f','#7aff9c','#ff8f7a','#7aa8ff','#ff5cc6','#a8ff5c'];
+let paletteIdx = 0;
+const state = {
+  objects: [],
+  lineCount: 0,
+  planeCount: 0,
+};
+
+function nextColor(){
+  const c = PALETTE[paletteIdx % PALETTE.length];
+  paletteIdx++;
+  return c;
+}
+
+function addObject(kind, data, sourceLabel, sourceType, overrideLabel){
+  let label;
+  if(overrideLabel){
+    label = overrideLabel;
+  } else if(kind === 'line'){
+    state.lineCount++; label = 'L' + state.lineCount;
+  } else {
+    state.planeCount++; label = 'P' + state.planeCount;
+  }
+  const obj = {
+    id: 'o' + Math.random().toString(36).slice(2,9),
+    kind, label,
+    color: nextColor(),
+    visible: true,
+    source: sourceLabel,
+    sourceType: sourceType,
+  };
+  if(kind === 'line'){
+    obj.point = data.point; obj.dir = data.dir;
+  } else {
+    obj.point = data.point; obj.normal = data.normal; obj.d = data.d;
+  }
+  state.objects.push(obj);
+  return obj;
+}
+
+function canonicalString(obj){
+  if(obj.kind === 'line'){
+    return formatLineVector(obj) + '\n' + formatLineCartesian(obj);
+  } else {
+    return formatPlaneCartesian(obj) + '\n' + formatPlaneScalar(obj);
+  }
+}
+
+/* ============================= THREE.JS SETUP ============================= */
+const canvas = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x081a2e);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
+const orbit = {theta: Math.PI*0.28, phi: Math.PI*0.35, radius: 22, target:[0,0,0]};
+
+function updateCamera(){
+  const {theta,phi,radius,target} = orbit;
+  camera.position.set(
+    target[0] + radius*Math.sin(phi)*Math.sin(theta),
+    target[1] + radius*Math.cos(phi),
+    target[2] + radius*Math.sin(phi)*Math.cos(theta)
+  );
+  camera.lookAt(target[0],target[1],target[2]);
+}
+updateCamera();
+
+let dragging = false, lastX=0, lastY=0;
+canvas.addEventListener('pointerdown', e=>{dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx = e.clientX-lastX, dy = e.clientY-lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  orbit.theta -= dx*0.006;
+  orbit.phi -= dy*0.006;
+  orbit.phi = Math.min(Math.PI-0.06, Math.max(0.06, orbit.phi));
+  updateCamera();
+});
+window.addEventListener('pointerup', ()=>{dragging=false;});
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  orbit.radius *= (1 + e.deltaY*0.001);
+  orbit.radius = Math.min(70, Math.max(4, orbit.radius));
+  updateCamera();
+}, {passive:false});
+
+function resize(){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if(w===0||h===0) return;
+  renderer.setSize(w,h,false);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas);
+
+/* --- static grid + axes --- */
+const gridGroup = new THREE.Group();
+const grid = new THREE.GridHelper(24, 24, 0x2a5a86, 0x1a3a5c);
+gridGroup.add(grid);
+
+function makeAxisLine(dir, color, len){
+  const geom = new THREE.BufferGeometry();
+  const p1 = scale(dir,-len), p2 = scale(dir,len);
+  geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array([...p1,...p2]),3));
+  return new THREE.Line(geom, new THREE.LineBasicMaterial({color}));
+}
+function makeTextSprite(text,color){
+  const c = document.createElement('canvas'); c.width=96; c.height=48;
+  const ctx = c.getContext('2d');
+  ctx.font = '600 34px JetBrains Mono, monospace';
+  ctx.fillStyle = color;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text, 48, 24);
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true});
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.9,0.45,1);
+  return sprite;
+}
+const AXIS_LEN = 11;
+gridGroup.add(makeAxisLine([1,0,0], 0xff7a33, AXIS_LEN));
+gridGroup.add(makeAxisLine([0,1,0], 0x7aff9c, AXIS_LEN));
+gridGroup.add(makeAxisLine([0,0,1], 0x4fd1e8, AXIS_LEN));
+const lblX = makeTextSprite('X','#ff7a33'); lblX.position.set(AXIS_LEN+0.6,0,0); gridGroup.add(lblX);
+const lblY = makeTextSprite('Y','#7aff9c'); lblY.position.set(0,AXIS_LEN+0.6,0); gridGroup.add(lblY);
+const lblZ = makeTextSprite('Z','#4fd1e8'); lblZ.position.set(0,0,AXIS_LEN+0.6); gridGroup.add(lblZ);
+scene.add(gridGroup);
+
+const objectsGroup = new THREE.Group();
+const markersGroup = new THREE.Group();
+const previewGroup = new THREE.Group();
+scene.add(objectsGroup, markersGroup, previewGroup);
+
+function planeBasis(normal){
+  const n = normalize(normal);
+  const arbitrary = Math.abs(n[0]) < 0.9 ? [1,0,0] : [0,1,0];
+  const u = normalize(cross(arbitrary, n));
+  const v = cross(n, u);
+  return [u,v];
+}
+
+function buildPlaneGroup(point, normal, colorHex, opacity){
+  const size = 6;
+  const [u,v] = planeBasis(normal);
+  const corners = [
+    add(add(point, scale(u,-size)), scale(v,-size)),
+    add(add(point, scale(u, size)), scale(v,-size)),
+    add(add(point, scale(u, size)), scale(v, size)),
+    add(add(point, scale(u,-size)), scale(v, size)),
+  ];
+  const positions = new Float32Array([
+    ...corners[0], ...corners[1], ...corners[2],
+    ...corners[0], ...corners[2], ...corners[3]
+  ]);
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  geom.computeVertexNormals();
+  const mat = new THREE.MeshBasicMaterial({color:colorHex, transparent:true, opacity: opacity===undefined?0.26:opacity, side:THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geom, mat);
+
+  const borderPositions = new Float32Array([
+    ...corners[0], ...corners[1],
+    ...corners[1], ...corners[2],
+    ...corners[2], ...corners[3],
+    ...corners[3], ...corners[0]
+  ]);
+  const borderGeom = new THREE.BufferGeometry();
+  borderGeom.setAttribute('position', new THREE.BufferAttribute(borderPositions,3));
+  const border = new THREE.LineSegments(borderGeom, new THREE.LineBasicMaterial({color:colorHex}));
+
+  const group = new THREE.Group();
+  group.add(mesh); group.add(border);
+  return group;
+}
+
+function buildLineMesh(point, dir, colorHex, dashed){
+  const d = normalize(dir);
+  const t = 15;
+  const p1 = sub(point, scale(d,t));
+  const p2 = add(point, scale(d,t));
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array([...p1,...p2]),3));
+  let mat;
+  if(dashed){
+    mat = new THREE.LineDashedMaterial({color:colorHex, dashSize:0.35, gapSize:0.22});
+  } else {
+    mat = new THREE.LineBasicMaterial({color:colorHex});
+  }
+  const line = new THREE.Line(geom, mat);
+  if(dashed) line.computeLineDistances();
+  return line;
+}
+
+function buildMarker(point, colorHex){
+  const geom = new THREE.SphereGeometry(0.13, 18, 18);
+  const mat = new THREE.MeshBasicMaterial({color: colorHex || 0xff7a33});
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(point[0],point[1],point[2]);
+  return mesh;
+}
+
+/* ============================= INTERACTIONS ============================= */
+function computeInteractions(){
+  const lines = state.objects.filter(o=>o.kind==='line' && o.visible);
+  const planes = state.objects.filter(o=>o.kind==='plane' && o.visible);
+  const results = [];
+
+  for(const l of lines){
+    for(const p of planes){
+      const denom = dot(l.dir, p.normal);
+      if(Math.abs(denom) < EPS){
+        const check = dot(p.normal, l.point) - p.d;
+        if(Math.abs(check) < 1e-4){
+          results.push({type:'coincident', text: l.label + ' lies entirely within ' + p.label + '.'});
+        } else {
+          results.push({type:'parallel', text: l.label + ' is parallel to ' + p.label + ' — no intersection.'});
+        }
+      } else {
+        const t = (p.d - dot(p.normal, l.point)) / denom;
+        const pt = add(l.point, scale(l.dir, t));
+        results.push({type:'point', point: pt, text: l.label + ' meets ' + p.label + ' at ' + formatVec(pt) + '.'});
+      }
+    }
+  }
+
+  for(let i=0;i<lines.length;i++){
+    for(let j=i+1;j<lines.length;j++){
+      const l1=lines[i], l2=lines[j];
+      const d1=l1.dir, d2=l2.dir;
+      const crossd = cross(d1,d2);
+      if(norm(crossd) < EPS){
+        const w = sub(l2.point, l1.point);
+        if(norm(cross(w,d1)) < EPS){
+          results.push({type:'coincident', text: l1.label + ' and ' + l2.label + ' are the same line.'});
+        } else {
+          results.push({type:'parallel', text: l1.label + ' is parallel to ' + l2.label + ' — no intersection.'});
+        }
+      } else {
+        const w0 = sub(l1.point, l2.point);
+        const a=dot(d1,d1), b=dot(d1,d2), c=dot(d2,d2), d=dot(d1,w0), e=dot(d2,w0);
+        const denom = a*c-b*b;
+        const sc = (b*e-c*d)/denom, tc=(a*e-b*d)/denom;
+        const pt1 = add(l1.point, scale(d1,sc));
+        const pt2 = add(l2.point, scale(d2,tc));
+        if(norm(sub(pt1,pt2)) < 1e-3){
+          results.push({type:'point', point: pt1, text: l1.label + ' and ' + l2.label + ' intersect at ' + formatVec(pt1) + '.'});
+        } else {
+          results.push({type:'skew', text: l1.label + ' and ' + l2.label + ' are skew — they never meet.'});
+        }
+      }
+    }
+  }
+
+  for(let i=0;i<planes.length;i++){
+    for(let j=i+1;j<planes.length;j++){
+      const p1=planes[i], p2=planes[j];
+      const n1=p1.normal, n2=p2.normal;
+      const cr = cross(n1,n2);
+      if(norm(cr) < EPS){
+        const check = dot(n1, p2.point) - p1.d;
+        if(Math.abs(check) < 1e-4){
+          results.push({type:'coincident', text: p1.label + ' and ' + p2.label + ' are the same plane.'});
+        } else {
+          results.push({type:'parallel', text: p1.label + ' is parallel to ' + p2.label + ' — no intersection.'});
+        }
+      } else {
+        const n1n1=dot(n1,n1), n2n2=dot(n2,n2), n1n2=dot(n1,n2);
+        const det = n1n1*n2n2 - n1n2*n1n2;
+        const aa = (p1.d*n2n2 - p2.d*n1n2)/det;
+        const bb = (p2.d*n1n1 - p1.d*n1n2)/det;
+        const pt = add(scale(n1,aa), scale(n2,bb));
+        results.push({type:'line', point: pt, dir: cr, text: p1.label + ' and ' + p2.label + ' meet along a line through ' + formatVec(pt) + ', direction ' + formatVec(cr) + '.'});
+      }
+    }
+  }
+  return results;
+}
+
+/* ============================= RENDER / REBUILD ============================= */
+function rebuildScene(){
+  objectsGroup.clear();
+  markersGroup.clear();
+
+  for(const obj of state.objects){
+    if(!obj.visible) continue;
+    if(obj.kind === 'line'){
+      objectsGroup.add(buildLineMesh(obj.point, obj.dir, obj.color, false));
+    } else {
+      objectsGroup.add(buildPlaneGroup(obj.point, obj.normal, obj.color, 0.26));
+    }
+  }
+
+  const interactions = computeInteractions();
+  for(const r of interactions){
+    if(r.type === 'point'){
+      markersGroup.add(buildMarker(r.point, 0xff7a33));
+    } else if(r.type === 'line'){
+      markersGroup.add(buildLineMesh(r.point, r.dir, 0xff7a33, true));
+    }
+  }
+
+  renderObjectList();
+  renderInteractions(interactions);
+  refreshSelectors();
+}
+
+function renderObjectList(){
+  const el = document.getElementById('objList');
+  if(state.objects.length === 0){
+    el.innerHTML = '<div class="empty">Nothing plotted yet — add a line or plane above.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  for(const obj of state.objects){
+    const row = document.createElement('div');
+    row.className = 'obj-row';
+    const swatch = document.createElement('div');
+    swatch.className = 'swatch';
+    swatch.style.background = obj.color;
+    swatch.style.opacity = obj.visible ? '1' : '0.3';
+
+    const info = document.createElement('div');
+    info.className = 'obj-info';
+    const eqText = obj.kind === 'line' ? formatLineVector(obj) : formatPlaneCartesian(obj);
+    info.innerHTML = '<div class="lbl">' + obj.label + ' <span style="color:var(--ink-faint); font-weight:400;">· ' + (obj.kind==='line'?'line':'plane') + '</span></div><div class="eq">' + eqText + '</div>';
+
+    const actions = document.createElement('div');
+    actions.className = 'obj-actions';
+    const visBtn = document.createElement('button');
+    visBtn.className = 'icon-btn';
+    visBtn.textContent = obj.visible ? 'hide' : 'show';
+    visBtn.onclick = ()=>{ obj.visible = !obj.visible; rebuildScene(); };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn';
+    delBtn.textContent = 'delete';
+    delBtn.onclick = ()=>{ state.objects = state.objects.filter(o=>o.id!==obj.id); rebuildScene(); };
+    actions.appendChild(visBtn);
+    actions.appendChild(delBtn);
+
+    row.appendChild(swatch);
+    row.appendChild(info);
+    row.appendChild(actions);
+    el.appendChild(row);
+  }
+}
+
+function renderInteractions(interactions){
+  const el = document.getElementById('interactionsList');
+  if(interactions.length === 0){
+    el.innerHTML = '<div class="empty">Add at least two objects to see how they interact.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  for(const r of interactions){
+    const div = document.createElement('div');
+    div.className = 'interaction-item ' + r.type;
+    div.textContent = r.text;
+    el.appendChild(div);
+  }
+}
+
+function refreshSelectors(){
+  const lines = state.objects.filter(o=>o.kind==='line');
+  const planes = state.objects.filter(o=>o.kind==='plane');
+  fillSelect('rotLineSelect', lines);
+  fillSelect('reflLineSelect', lines);
+  fillSelect('reflPlaneSelect', planes);
+  updateRotatePreview();
+}
+function fillSelect(id, items){
+  const sel = document.getElementById(id);
+  const prev = sel.value;
+  sel.innerHTML = '';
+  if(items.length === 0){
+    const opt = document.createElement('option');
+    opt.textContent = '— none available —';
+    opt.value = '';
+    sel.appendChild(opt);
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  for(const it of items){
+    const opt = document.createElement('option');
+    opt.value = it.id;
+    opt.textContent = it.label;
+    sel.appendChild(opt);
+  }
+  if(items.some(i=>i.id===prev)) sel.value = prev;
+}
+
+/* ============================= ROTATION ============================= */
+function rotateAroundAxis(v, axisDir, theta){
+  const k = normalize(axisDir);
+  const cosT = Math.cos(theta), sinT = Math.sin(theta);
+  const term1 = scale(v, cosT);
+  const term2 = scale(cross(k,v), sinT);
+  const term3 = scale(k, dot(k,v)*(1-cosT));
+  return add(add(term1,term2),term3);
+}
+function getRotationAxis(){
+  const mode = document.getElementById('rotAxisMode').value;
+  if(mode === 'x') return {point:[0,0,0], dir:[1,0,0]};
+  if(mode === 'y') return {point:[0,0,0], dir:[0,1,0]};
+  if(mode === 'z') return {point:[0,0,0], dir:[0,0,1]};
+  const pStr = document.getElementById('axisPoint').value;
+  const dStr = document.getElementById('axisDir').value;
+  const p = pStr.split(',').map(s=>parseFloat(s.trim()));
+  const d = dStr.split(',').map(s=>parseFloat(s.trim()));
+  if(p.length!==3 || d.length!==3 || p.some(isNaN) || d.some(isNaN)) return null;
+  if(norm(d) < EPS) return null;
+  return {point:p, dir:d};
+}
+function rotateLine(line, axis, thetaDeg){
+  const theta = thetaDeg * Math.PI / 180;
+  const rel = sub(line.point, axis.point);
+  const relRot = rotateAroundAxis(rel, axis.dir, theta);
+  const newPoint = add(axis.point, relRot);
+  const newDir = rotateAroundAxis(line.dir, axis.dir, theta);
+  return {point:newPoint, dir:newDir};
+}
+function updateRotatePreview(){
+  previewGroup.clear();
+  const lineId = document.getElementById('rotLineSelect').value;
+  const line = state.objects.find(o=>o.id===lineId);
+  const axis = getRotationAxis();
+  const angle = parseFloat(document.getElementById('rotAngle').value);
+  document.getElementById('rotAngleReadout').textContent = angle + '°';
+  if(!line || !axis) return;
+  const rotated = rotateLine(line, axis, angle);
+  previewGroup.add(buildLineMesh(rotated.point, rotated.dir, '#ffffff', true));
+}
+
+/* ============================= REFLECTION ============================= */
+function reflectPoint(P, plane){
+  const nn = dot(plane.normal, plane.normal);
+  const t = (dot(plane.normal, P) - plane.d) / nn;
+  return sub(P, scale(plane.normal, 2*t));
+}
+function reflectDirection(v, plane){
+  const nn = dot(plane.normal, plane.normal);
+  const t = dot(plane.normal, v) / nn;
+  return sub(v, scale(plane.normal, 2*t));
+}
+
+/* ============================= UI WIRING ============================= */
+const typeSelect = document.getElementById('inputType');
+for(const t of INPUT_TYPES){
+  const opt = document.createElement('option');
+  opt.value = t.value; opt.textContent = t.label;
+  typeSelect.appendChild(opt);
+}
+function currentTypeDef(){ return INPUT_TYPES.find(t=>t.value===typeSelect.value); }
+function refreshInputHelp(){
+  const t = currentTypeDef();
+  document.getElementById('inputEq').placeholder = t.placeholder;
+  document.getElementById('inputHelp').innerHTML = t.help;
+  hideError();
+}
+typeSelect.addEventListener('change', refreshInputHelp);
+refreshInputHelp();
+
+document.getElementById('exampleBtn').addEventListener('click', ()=>{
+  document.getElementById('inputEq').value = currentTypeDef().placeholder;
+});
+
+function showError(msg){
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError(){
+  document.getElementById('errorMsg').style.display = 'none';
+}
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  hideError();
+  const t = currentTypeDef();
+  const raw = document.getElementById('inputEq').value.trim();
+  if(!raw){ showError('Enter an equation first.'); return; }
+  try{
+    const data = t.parser(raw);
+    addObject(t.kind, data, raw, t.value);
+    document.getElementById('inputEq').value = '';
+    rebuildScene();
+  } catch(err){
+    showError(err.message);
+  }
+});
+
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  state.objects = [];
+  state.lineCount = 0; state.planeCount = 0;
+  rebuildScene();
+});
+document.getElementById('resetViewBtn').addEventListener('click', ()=>{
+  orbit.theta = Math.PI*0.28; orbit.phi = Math.PI*0.35; orbit.radius = 22;
+  updateCamera();
+});
+
+const rotAxisMode = document.getElementById('rotAxisMode');
+rotAxisMode.addEventListener('change', ()=>{
+  document.getElementById('customAxisFields').classList.toggle('hidden', rotAxisMode.value !== 'custom');
+  updateRotatePreview();
+});
+document.getElementById('axisPoint').addEventListener('input', updateRotatePreview);
+document.getElementById('axisDir').addEventListener('input', updateRotatePreview);
+document.getElementById('rotAngle').addEventListener('input', updateRotatePreview);
+document.getElementById('rotLineSelect').addEventListener('change', updateRotatePreview);
+
+document.getElementById('rotateApplyBtn').addEventListener('click', ()=>{
+  hideError();
+  const lineId = document.getElementById('rotLineSelect').value;
+  const line = state.objects.find(o=>o.id===lineId);
+  const axis = getRotationAxis();
+  const angle = parseFloat(document.getElementById('rotAngle').value);
+  if(!line){ showError('Choose a line to rotate — add one first.'); return; }
+  if(!axis){ showError('Enter a valid custom axis point and direction.'); return; }
+  const rotated = rotateLine(line, axis, angle);
+  const obj = addObject('line', rotated, 'rotated', 'derived');
+  obj.label = line.label + "' (rot " + angle + '° about ' + rotAxisMode.value + ')';
+  rebuildScene();
+});
+
+document.getElementById('reflectBtn').addEventListener('click', ()=>{
+  hideError();
+  const lineId = document.getElementById('reflLineSelect').value;
+  const planeId = document.getElementById('reflPlaneSelect').value;
+  const line = state.objects.find(o=>o.id===lineId);
+  const plane = state.objects.find(o=>o.id===planeId);
+  if(!line || !plane){ showError('Choose both a line and a plane — add them first.'); return; }
+  const newPoint = reflectPoint(line.point, plane);
+  const newDir = reflectDirection(line.dir, plane);
+  const obj = addObject('line', {point:newPoint, dir:newDir}, 'reflected', 'derived');
+  obj.label = line.label + "' (reflect in " + plane.label + ')';
+  rebuildScene();
+});
+
+/* ============================= ANIMATE ============================= */
+function animate(){
+  requestAnimationFrame(animate);
+  resize();
+  renderer.render(scene, camera);
+}
+rebuildScene();
+animate();
+
+})();
+</script>
+</body>
+</html>
